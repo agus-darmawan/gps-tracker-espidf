@@ -9,18 +9,13 @@
 #include "esp_log.h"
 
 static const char *TAG = "GPS";
-
-// UART Configuration for GPS
-#define GPS_UART_NUM        UART_NUM_1
-#define GPS_TXD_PIN         GPIO_NUM_17
-#define GPS_RXD_PIN         GPIO_NUM_16
-#define GPS_UART_BUF_SIZE   1024
-#define GPS_BAUD_RATE       9600
-
 static gps_data_t current_gps_data = {0};
 
 /**
- * Convert NMEA coordinate format to decimal degrees
+ * Convert NMEA coordinate format to decimal degrees.
+ * @param coord The coordinate string in NMEA format.
+ * @param direction The direction (N/S/E/W).
+ * @return The decimal degree value.
  */
 static float nmea_to_decimal(const char *coord, char direction) {
     if (coord == NULL || strlen(coord) < 4) return 0.0;
@@ -42,7 +37,9 @@ static float nmea_to_decimal(const char *coord, char direction) {
 }
 
 /**
- * Verify NMEA checksum
+ * Verify NMEA checksum.
+ * @param sentence The NMEA sentence.
+ * @return True if the checksum is valid, false otherwise.
  */
 static bool verify_checksum(char *sentence) {
     char *checksum_str = strchr(sentence, '*');
@@ -58,7 +55,8 @@ static bool verify_checksum(char *sentence) {
 }
 
 /**
- * Parse GPGGA sentence
+ * Parse GPGGA sentence and update GPS data.
+ * @param sentence The NMEA sentence.
  */
 static void parse_gpgga(char *sentence) {
     char *token;
@@ -110,7 +108,8 @@ static void parse_gpgga(char *sentence) {
 }
 
 /**
- * Parse GPRMC sentence
+ * Parse GPRMC sentence and update GPS data.
+ * @param sentence The NMEA sentence.
  */
 static void parse_gprmc(char *sentence) {
     char *token;
@@ -161,7 +160,9 @@ static void parse_gprmc(char *sentence) {
 }
 
 /**
- * Process NMEA sentence
+ * Process NMEA sentence.
+ * Validates the checksum and processes the sentence if it's correct.
+ * @param sentence The NMEA sentence.
  */
 static void process_nmea_sentence(char *sentence) {
     if (sentence == NULL || sentence[0] != '$') return;
@@ -179,7 +180,8 @@ static void process_nmea_sentence(char *sentence) {
 }
 
 /**
- * GPS reading task
+ * GPS reading task.
+ * Reads NMEA sentences from the GPS module and processes them.
  */
 void gps_task(void *pvParameters) {
     uint8_t *data = (uint8_t *)malloc(GPS_UART_BUF_SIZE);
@@ -217,7 +219,8 @@ void gps_task(void *pvParameters) {
 }
 
 /**
- * Initialize GPS UART
+ * Initialize GPS UART.
+ * Configures the UART interface to communicate with the GPS module.
  */
 void gps_init(void) {
     const uart_config_t uart_config = {
@@ -238,14 +241,16 @@ void gps_init(void) {
 }
 
 /**
- * Get current GPS data
+ * Get current GPS data.
+ * @return The current GPS data structure.
  */
 gps_data_t gps_get_data(void) {
     return current_gps_data;
 }
 
 /**
- * Check if GPS has valid fix
+ * Check if GPS has valid fix.
+ * @return True if GPS has a valid fix, false otherwise.
  */
 bool gps_has_fix(void) {
     return current_gps_data.valid;
