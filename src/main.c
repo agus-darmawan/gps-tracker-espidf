@@ -1,33 +1,27 @@
-#include <stdio.h>
+#include "max6675.h"
+#include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "esp_log.h"
-#include "max6675.h"
 
-static const char *TAG = "MAX6675";
+static const char *TAG = "APP";
 
-/**
- * Main application task.
- * Initializes the MAX6675 sensor and periodically reads temperature.
- */
-void app_main(void) {
-    esp_err_t ret;
-
-    // Initialize MAX6675 sensor
-    ret = max6675_init();
+void app_main(void)
+{
+    ESP_LOGI(TAG, "Initializing MAX6675...");
+    esp_err_t ret = max6675_init();
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "MAX6675 initialization failed");
+        ESP_LOGE(TAG, "MAX6675 init failed: %s", esp_err_to_name(ret));
         return;
     }
 
     while (1) {
-        // Read and print temperature
-        float temperature = max6675_read_temperature();
-        if (temperature != -1.0f) {
-            ESP_LOGI(TAG, "Temperature: %.2f°C", temperature);
+        float temp = max6675_read_temperature();
+        if (temp < 0) {
+            ESP_LOGW(TAG, "Read failed or thermocouple disconnected!");
+        } else {
+            ESP_LOGI(TAG, "Temperature: %.2f °C", temp);
         }
 
-        // Wait for 1 second before reading again
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
