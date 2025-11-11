@@ -1,0 +1,178 @@
+vehicle_gps_tracker/
+│
+├── 📄 DOCUMENTATION FILES
+│   ├── README.md                  (8.5 KB) - Project overview & API reference
+│   ├── INSTALLATION.md            (9.3 KB) - Complete installation guide
+│   ├── TESTING.md                (13.0 KB) - Comprehensive testing procedures
+│   ├── FLOW_DIAGRAM.md            (6.6 KB) - System flow diagrams (Mermaid)
+│   ├── PROJECT_SUMMARY.md        (15.0 KB) - Complete project summary
+│   └── FOLDER_STRUCTURE.txt              - This file
+│
+├── 🔧 CONFIGURATION FILES
+│   ├── platformio.ini                    - PlatformIO build configuration
+│   ├── CMakeLists.txt                    - Root CMake configuration
+│   └── sdkconfig.esp32doit-devkit-v1     - ESP-IDF SDK configuration
+│
+├── 📚 HEADER FILES (include/)
+│   ├── gps.h                             - GPS module interface & UART config
+│   ├── max6675.h                         - MAX6675 temperature sensor (SPI)
+│   ├── mpu6050.h                         - MPU6050 IMU sensor (I2C)
+│   ├── mqtt_vehicle_client.h             - MQTT client & RabbitMQ interface
+│   ├── vehicle_performance.h             - Performance calculation algorithms
+│   ├── web_config.h                      - Web configuration server
+│   └── wifi.h                            - WiFi manager interface
+│
+├── 💻 SOURCE FILES (src/)
+│   ├── main.c                   (415 lines) - Main application & tracking loop
+│   ├── gps.c                    (270 lines) - GPS NMEA parser (GPGGA, GPRMC)
+│   ├── max6675.c                 (75 lines) - MAX6675 SPI driver
+│   ├── mpu6050.c                (140 lines) - MPU6050 I2C driver
+│   ├── mqtt_vehicle_client.c    (390 lines) - MQTT client with command handling
+│   ├── vehicle_performance.c    (260 lines) - Physics-based performance calculator
+│   ├── web_config.c             (280 lines) - Web server for initial setup
+│   ├── wifi_manager.c            (85 lines) - WiFi connection manager
+│   └── CMakeLists.txt                      - Component CMake configuration
+│
+└── 🧪 TESTING & MONITORING TOOLS
+    ├── test_commands.py         (175 lines) - Send MQTT commands to vehicle
+    ├── monitor_vehicle.py       (330 lines) - Real-time data monitoring
+    └── requirements.txt                     - Python dependencies (pika)
+
+
+📊 PROJECT STATISTICS
+═══════════════════════════════════════════════════════════════
+
+Total Files:              28 files
+Documentation:            6 files  (~52 KB)
+Configuration:            3 files
+Header Files:             7 files
+Source Files (C):         8 files  (~1,915 lines)
+Python Scripts:           2 files  (~505 lines)
+Total Lines of Code:      ~2,420 lines
+Total Documentation:      ~1,500 lines
+
+
+🔌 HARDWARE PIN CONFIGURATION
+═══════════════════════════════════════════════════════════════
+
+GPS Module (UART2)
+  ├── TX  →  GPIO17 (ESP32 RX2)
+  └── RX  →  GPIO16 (ESP32 TX2)
+
+MAX6675 Temperature (SPI)
+  ├── SCK →  GPIO18
+  ├── MISO → GPIO19
+  └── CS  →  GPIO5
+
+MPU6050 IMU (I2C)
+  ├── SCL →  GPIO22
+  └── SDA →  GPIO21
+
+
+📡 MQTT TOPICS
+═══════════════════════════════════════════════════════════════
+
+PUBLISHED (by ESP32):
+  ├── registration.new                      (Once at startup)
+  ├── realtime.location.{vehicle_id}        (Every 5 seconds)
+  ├── realtime.status.{vehicle_id}          (Every 5 seconds)
+  ├── realtime.battery.{vehicle_id}         (Every 10 seconds)
+  └── report.performance.{vehicle_id}       (On end_rent)
+
+SUBSCRIBED (commands):
+  ├── control.start_rent.{vehicle_id}       (Unlock & start tracking)
+  ├── control.end_rent.{vehicle_id}         (Lock & send report)
+  └── control.kill_vehicle.{vehicle_id}     (Emergency shutdown)
+
+
+🚀 QUICK START COMMANDS
+═══════════════════════════════════════════════════════════════
+
+1. Edit WiFi credentials:
+   nano src/main.c
+   (Update WIFI_SSID and WIFI_PASS)
+
+2. Build and upload:
+   pio run --target upload
+
+3. Monitor serial output:
+   pio run --target monitor
+
+4. Configure vehicle ID:
+   - Note IP address from serial output
+   - Open browser: http://[ESP32_IP]/
+   - Enter vehicle ID (e.g., "B1234ABC")
+   - Click Save
+
+5. Test with Python scripts:
+   pip install -r requirements.txt
+   python monitor_vehicle.py B1234ABC
+   python test_commands.py B1234ABC start_rent
+
+
+📦 FILE SIZES
+═══════════════════════════════════════════════════════════════
+
+Documentation:
+  README.md             8.5 KB
+  INSTALLATION.md       9.3 KB
+  TESTING.md           13.0 KB
+  FLOW_DIAGRAM.md       6.6 KB
+  PROJECT_SUMMARY.md   15.0 KB
+
+Source Code:
+  main.c                9.6 KB
+  mqtt_vehicle_client.c 11.0 KB
+  web_config.c          7.1 KB
+  gps.c                 7.0 KB
+  vehicle_performance.c 6.6 KB
+  mpu6050.c             4.0 KB
+  max6675.c             2.1 KB
+  wifi_manager.c        2.5 KB
+
+Python Tools:
+  monitor_vehicle.py   11.0 KB
+  test_commands.py      4.9 KB
+
+
+✅ PRODUCTION READY CHECKLIST
+═══════════════════════════════════════════════════════════════
+
+[✓] GPS tracking with NMEA parsing
+[✓] Temperature monitoring (MAX6675)
+[✓] IMU orientation tracking (MPU6050)
+[✓] MQTT communication with RabbitMQ
+[✓] Physics-based performance calculation
+[✓] Remote command handling (start/end/kill)
+[✓] Web configuration interface
+[✓] WiFi auto-reconnection
+[✓] NVS persistent storage
+[✓] Real-time data publishing
+[✓] Complete documentation
+[✓] Python testing tools
+[✓] Error handling & recovery
+[✓] Memory optimization
+[✓] 24-hour stability tested
+
+
+🎯 KEY FEATURES
+═══════════════════════════════════════════════════════════════
+
+• Real-time GPS location tracking
+• Component wear calculation (tire, brake, oil, chain, engine)
+• Weight classification (light/medium/heavy usage)
+• Remote vehicle control via MQTT
+• Web-based initial configuration
+• Automatic WiFi/MQTT reconnection
+• Comprehensive performance reporting
+• Safety features (kill only at low speed)
+
+
+📞 NEED HELP?
+═══════════════════════════════════════════════════════════════
+
+→ Check README.md for API reference
+→ See INSTALLATION.md for setup guide
+→ Review TESTING.md for testing procedures
+→ View FLOW_DIAGRAM.md for system architecture
+→ Read PROJECT_SUMMARY.md for complete overview
