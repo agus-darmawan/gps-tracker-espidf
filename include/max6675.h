@@ -2,14 +2,18 @@
 #define MAX6675_H
 
 #include "driver/spi_master.h"
+#include "esp_err.h"
+
+#include "driver/gpio.h"
 
 // SPI Configuration for MAX6675
-#define MAX6675_CS_PIN    5  // CS PIN
-#define MAX6675_CLK_PIN   23 // SCK PIN
-#define MAX6675_MISO_PIN  19 // SO PIN
-#define SPI_SPEED_HZ      1000000  
+#define MAX6675_CLK_PIN     GPIO_NUM_18
+#define MAX6675_MISO_PIN    GPIO_NUM_19
+#define MAX6675_CS_PIN      GPIO_NUM_5
+#define SPI_SPEED_HZ        1000000  // 1 MHz
 
+// Function prototypes
 esp_err_t max6675_init(void);
 float max6675_read_temperature(void);
 
-#endif
+#endif // MAX6675_H

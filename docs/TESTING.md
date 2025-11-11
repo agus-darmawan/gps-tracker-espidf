@@ -1,551 +1,342 @@
-# Testing Guide - Vehicle GPS Tracker
+# Vehicle GPS Tracker - ESP32
 
-## 🧪 Testing Overview
+ESP32-based GPS tracker system for vehicle rental management with real-time monitoring, performance tracking, and remote control capabilities via MQTT/RabbitMQ.
 
-This guide covers comprehensive testing procedures for the Vehicle GPS Tracker system, from individual component testing to full system integration tests.
+## 🎯 Features
 
-## 📋 Test Prerequisites
+### Real-time Monitoring
+- **GPS Location Tracking**: Real-time vehicle position with latitude/longitude/altitude
+- **Status Monitoring**: Vehicle lock status, active status, and kill status
+- **Battery Monitoring**: Voltage and battery level tracking
+- **Temperature Monitoring**: Engine temperature via MAX6675 thermocouple sensor
 
-### Hardware Setup
-- ✅ All sensors properly wired
-- ✅ ESP32 powered and programmed
-- ✅ GPS module with clear sky view
-- ✅ Stable WiFi connection
-- ✅ RabbitMQ broker accessible
+### Performance Tracking
+- **Component Wear Calculation**: Tracks wear on:
+  - Front and rear tires
+  - Brake pads
+  - Engine oil
+  - Chain/CVT
+  - Engine (total distance)
+- **Weight Score**: Automatic classification (ringan/sedang/berat) based on usage patterns
+- **Trip Statistics**: Distance travelled, average speed, max speed
 
-### Software Setup
-```bash
-# Install Python dependencies
-pip install -r requirements.txt
+### Remote Control
+- **Start Rent**: Unlock vehicle and begin performance tracking
+- **End Rent**: Lock vehicle and generate performance report
+- **Kill Vehicle**: Emergency vehicle shutdown (executes when speed < 10 km/h)
 
-# Verify installations
-python --version  # 3.8+
-pio --version     # Latest
+### Configuration
+- **Web Interface**: Initial setup via WiFi hotspot for Vehicle ID configuration
+- **Persistent Storage**: Configuration saved to NVS (Non-Volatile Storage)
+
+## 📋 Hardware Requirements
+
+### ESP32 Development Board
+- ESP32-DOIT-DEVKIT-V1 or compatible
+
+### Sensors
+1. **GPS Module** (UART)
+   - TX: GPIO17
+   - RX: GPIO16
+   - Baud rate: 9600
+
+2. **MAX6675 Thermocouple** (SPI)
+   - CLK: GPIO18
+   - MISO: GPIO19
+   - CS: GPIO5
+
+3. **MPU6050 IMU** (I2C)
+   - SCL: GPIO22
+   - SDA: GPIO21
+
+## 🚀 Getting Started
+
+### 1. Prerequisites
+- [PlatformIO](https://platformio.org/) installed
+- ESP32 development board
+- USB cable for programming
+
+### 2. Configuration
+
+Edit `src/main.c` to set your WiFi credentials:
+```c
+#define WIFI_SSID "your_wifi_ssid"
+#define WIFI_PASS "your_wifi_password"
 ```
 
-## 🔬 Unit Tests
-
-### 1. WiFi Connection Test
-
-**Objective**: Verify WiFi connectivity
+### 3. Build and Upload
 
 ```bash
+# Build project
+pio run
+
+# Upload to ESP32
+pio run --target upload
+
 # Monitor serial output
 pio run --target monitor
 ```
 
-**Expected Output**:
+### 4. Initial Setup
+
+1. **Connect to WiFi**: ESP32 will connect to the configured WiFi network
+2. **Configure Vehicle ID**: 
+   - Open browser and navigate to ESP32's IP address (displayed in serial monitor)
+   - Enter vehicle ID (e.g., plate number: "B1234ABC")
+   - Save configuration
+3. **System Ready**: ESP32 will restart and begin normal operation
+
+## 📡 MQTT Topics
+
+### Published Topics (by ESP32)
+
+#### Registration
 ```
-[WIFI_MANAGER] WiFi init finished. Connecting to YourSSID
-[WIFI_MANAGER] Connected to WiFi with IP: 192.168.1.XXX
-```
-
-**Pass Criteria**:
-- ✅ Connects within 30 seconds
-- ✅ IP address displayed
-- ✅ No disconnect errors
-
-### 2. GPS Module Test
-
-**Objective**: Verify GPS data reception and parsing
-
-**Test Steps**:
-1. Place GPS module outdoors or near window
-2. Monitor serial output for GPS data
-3. Wait for valid fix (may take 30-60 seconds on cold start)
-
-**Expected Output**:
-```
-[GPS] GPS task started
-[GPS] GPS initialized on UART2 (TX: GPIO17, RX: GPIO16)
-```
-
-**Pass Criteria**:
-- ✅ GPS fix acquired within 60 seconds
-- ✅ Latitude/Longitude values reasonable
-- ✅ Altitude data present
-- ✅ No checksum errors
-
-**Troubleshooting**:
-```bash
-# Check UART communication
-# Add to main.c temporarily:
-ESP_LOGI("GPS", "Raw: %.*s", len, data);
-```
-
-### 3. Temperature Sensor Test
-
-**Objective**: Verify MAX6675 thermocouple readings
-
-**Test Code Addition** (in main.c):
-```c
-// In vehicle_tracking_task, add:
-float temp = max6675_read_temperature();
-ESP_LOGI("TEST", "Temperature: %.2f°C", temp);
-```
-
-**Expected Output**:
-```
-[MAX6675] MAX6675 initialized successfully
-[MAX6675] Temperature: 25.50°C
-```
-
-**Pass Criteria**:
-- ✅ Temperature reads between 0-300°C
-- ✅ No SPI communication errors
-- ✅ Values change when heat applied
-
-### 4. IMU Sensor Test
-
-**Objective**: Verify MPU6050 accelerometer and gyroscope
-
-**Test Code Addition**:
-```c
-mpu6050_data_t mpu_data;
-if (mpu6050_read_data(&mpu_data) == ESP_OK) {
-    ESP_LOGI("TEST", "Pitch: %.2f, Roll: %.2f", mpu_data.pitch, mpu_data.roll);
+Topic: registration.new
+Payload: {
+  "vehicle_id": "B1234ABC"
 }
 ```
 
-**Expected Output**:
+#### Real-time Location
 ```
-[MPU6050] MPU6050 initialized successfully
-[TEST] Pitch: 0.50, Roll: -1.20
-```
-
-**Pass Criteria**:
-- ✅ Pitch/Roll change when tilted
-- ✅ Values between -90 and +90 degrees
-- ✅ No I2C errors
-
-## 🔗 Integration Tests
-
-### 1. Web Configuration Test
-
-**Objective**: Verify web server and NVS storage
-
-**Test Steps**:
-1. Fresh flash ESP32 (erase flash first)
-   ```bash
-   pio run --target erase
-   pio run --target upload
-   ```
-
-2. Find ESP32 IP in serial monitor
-
-3. Open browser: `http://[ESP32_IP]/`
-
-4. Enter vehicle ID: "TEST001"
-
-5. Click "Save Configuration"
-
-6. Wait for restart
-
-**Expected Behavior**:
-```
-[WEB_CONFIG] HTTP server started successfully
-[WEB_CONFIG] Configuration saved to NVS
-[MAIN] Vehicle ID: TEST001
+Topic: realtime.location.{vehicle_id}
+Payload: {
+  "vehicle_id": "B1234ABC",
+  "latitude": -6.2088,
+  "longitude": 106.8456,
+  "altitude": 10.5,
+  "timestamp": "2025-11-12T10:30:00.000Z"
+}
+Interval: 5 seconds
 ```
 
-**Pass Criteria**:
-- ✅ Web page loads correctly
-- ✅ Configuration saves successfully
-- ✅ Device restarts with saved ID
-- ✅ Subsequent boots skip configuration
-
-### 2. MQTT Connection Test
-
-**Objective**: Verify MQTT broker connectivity
-
-**Test Steps**:
-1. Ensure RabbitMQ broker is running
-2. Monitor serial output
-3. Check for MQTT connection messages
-
-**Expected Output**:
+#### Real-time Status
 ```
-[MQTT_VEHICLE] MQTT client initialized for vehicle: TEST001
-[MQTT_VEHICLE] Connected to MQTT broker
-[MQTT_VEHICLE] Subscribed to control topics
-[MQTT_VEHICLE] Published registration for vehicle: TEST001
+Topic: realtime.status.{vehicle_id}
+Payload: {
+  "vehicle_id": "B1234ABC",
+  "is_active": true,
+  "is_locked": false,
+  "is_killed": false,
+  "timestamp": "2025-11-12T10:30:00.000Z"
+}
+Interval: 5 seconds
 ```
 
-**Pass Criteria**:
-- ✅ Connects within 5 seconds
-- ✅ Subscriptions successful
-- ✅ Registration message sent
-- ✅ No disconnection errors
-
-**Verify on RabbitMQ**:
-```bash
-# Check if queues have bindings
-curl -u backend:backend123 http://103.175.219.138:15672/api/queues
+#### Real-time Battery
+```
+Topic: realtime.battery.{vehicle_id}
+Payload: {
+  "vehicle_id": "B1234ABC",
+  "device_voltage": 12.6,
+  "device_battery_level": 95.5,
+  "timestamp": "2025-11-12T10:30:00.000Z"
+}
+Interval: 10 seconds
 ```
 
-### 3. Real-time Data Publishing Test
-
-**Objective**: Verify all data streams
-
-**Test Steps**:
-1. Start monitor script:
-   ```bash
-   python monitor_vehicle.py TEST001
-   ```
-
-2. Wait for data updates
-
-**Expected Monitor Output**:
+#### Performance Report (sent on end_rent)
 ```
-📍 LOCATION UPDATE #1
-   Coordinates: -6.208800, 106.845600
-   Altitude: 10.50m
-
-🟢 STATUS UPDATE #1
-   Active: False | Locked: True 🔒
-
-🔋 BATTERY UPDATE #1
-   Voltage: 12.60V | Level: 100.00%
-```
-
-**Pass Criteria**:
-- ✅ Location updates every 5 seconds
-- ✅ Status updates every 5 seconds
-- ✅ Battery updates every 10 seconds
-- ✅ All data fields populated correctly
-
-## 🚗 Functional Tests
-
-### Test Scenario 1: Complete Rental Cycle
-
-**Objective**: Test full start-to-end rental flow
-
-**Test Steps**:
-
-1. **Initial State**
-   ```bash
-   # Verify vehicle is locked
-   # Check monitor output
-   ```
-   Expected: `Locked: True`, `Active: False`
-
-2. **Start Rental**
-   ```bash
-   python test_commands.py TEST001 start_rent ORD-TEST-001
-   ```
-   
-   **Expected**:
-   - ✅ Status changes to: `Locked: False`, `Active: True`
-   - ✅ Performance tracking begins
-   - ✅ Serial shows: "Started tracking for order: ORD-TEST-001"
-
-3. **Simulate Movement** (manually move GPS or use test data)
-   - Move vehicle to generate location changes
-   - Tilt device to simulate elevation changes
-   - Apply heat to thermocouple
-
-   **Expected**:
-   - ✅ Location coordinates change
-   - ✅ Performance data updates in serial log
-   - ✅ Speed calculations occur
-
-4. **End Rental**
-   ```bash
-   python test_commands.py TEST001 end_rent
-   ```
-   
-   **Expected**:
-   - ✅ Status changes to: `Locked: True`, `Active: False`
-   - ✅ Performance report published
-   - ✅ Monitor shows complete performance summary
-
-**Performance Report Validation**:
-```
-📊 PERFORMANCE REPORT
-Order ID: ORD-TEST-001
-Distance: X.XX km
-Component Wear: [All values > 0]
-```
-
-### Test Scenario 2: Emergency Kill
-
-**Objective**: Test remote vehicle shutdown
-
-**Test Steps**:
-
-1. **Start Rental First**
-   ```bash
-   python test_commands.py TEST001 start_rent ORD-KILL-TEST
-   ```
-
-2. **Send Kill Command**
-   ```bash
-   python test_commands.py TEST001 kill
-   ```
-   
-   **Expected Serial Output**:
-   ```
-   [MQTT_VEHICLE] Kill vehicle scheduled (waiting for low speed)
-   ```
-
-3. **Wait for Speed Reduction** (simulate by staying still or moving slowly)
-
-   **Expected**:
-   - ✅ When speed < 10 km/h: Vehicle stops
-   - ✅ Serial shows: "Kill executed (speed < 10)"
-   - ✅ Status: `Killed: True`, `Active: False`, `Locked: True`
-
-**Pass Criteria**:
-- ✅ Kill schedules correctly
-- ✅ Executes only when safe (speed < 10)
-- ✅ Status updates immediately
-
-### Test Scenario 3: Performance Calculation Validation
-
-**Objective**: Verify component wear calculations
-
-**Test Setup**:
-Create controlled test conditions:
-- Flat road: h = 0
-- Constant acceleration: v_start = 0, v_end = 20 km/h
-- Distance: 100m
-- Temperature: 85°C
-
-**Expected Calculations**:
-```
-Rear Tire Force = ((20-0)/3 + 0) / 3.0 * 100 = 222m
-Chain Force = 222m
-Oil Wear = 100 * exp(0.0693 * (85-100)) = ~42m
-```
-
-**Verification**:
-```bash
-# Add debug logging in vehicle_performance.c
-ESP_LOGI(TAG, "Calculated: rear=%d, chain=%d, oil=%d", 
-         delta_rear, delta_chain, count_s_oil(s_real, T_machine));
-```
-
-**Pass Criteria**:
-- ✅ Calculations match expected formulas
-- ✅ Weight score updates correctly
-- ✅ Statistics accumulate properly
-
-## 📊 Performance Tests
-
-### 1. Memory Usage Test
-
-**Objective**: Ensure system runs within memory constraints
-
-**Test Code**:
-```c
-// Add to main loop
-ESP_LOGI("PERF", "Free heap: %lu bytes, Min free: %lu bytes", 
-         esp_get_free_heap_size(), esp_get_minimum_free_heap_size());
-```
-
-**Pass Criteria**:
-- ✅ Free heap stays above 50KB
-- ✅ No heap fragmentation warnings
-- ✅ Minimum free heap stable over time
-
-### 2. Network Reliability Test
-
-**Objective**: Test system under poor network conditions
-
-**Test Steps**:
-1. Run system normally for 5 minutes
-2. Disconnect WiFi router
-3. Wait 2 minutes
-4. Reconnect WiFi router
-
-**Expected Behavior**:
-- ✅ System attempts reconnection
-- ✅ MQTT reconnects automatically
-- ✅ Data queues and sends after reconnection
-- ✅ No crashes or reboots
-
-### 3. Long-term Stability Test
-
-**Objective**: Verify 24+ hour operation
-
-**Test Steps**:
-1. Start monitor script
-2. Leave system running for 24 hours
-3. Log all updates
-
-**Pass Criteria**:
-- ✅ No crashes or reboots
-- ✅ Memory usage remains stable
-- ✅ All sensors continue reporting
-- ✅ MQTT connection maintained
-
-## 🔍 Diagnostic Commands
-
-### Enable Debug Logging
-
-Add to `platformio.ini`:
-```ini
-build_flags = 
-    -DCORE_DEBUG_LEVEL=5  ; Maximum verbosity
-    -DLOG_LOCAL_LEVEL=ESP_LOG_VERBOSE
-```
-
-### I2C Scanner Test
-
-```c
-// Add temporary test function
-void scan_i2c(void) {
-    for (uint8_t addr = 1; addr < 127; addr++) {
-        i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-        i2c_master_start(cmd);
-        i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
-        i2c_master_stop(cmd);
-        
-        esp_err_t ret = i2c_master_cmd_begin(I2C_NUM_0, cmd, 50 / portTICK_PERIOD_MS);
-        i2c_cmd_link_delete(cmd);
-        
-        if (ret == ESP_OK) {
-            ESP_LOGI("I2C", "Found device at address: 0x%02X", addr);
-        }
-    }
+Topic: report.performance.{vehicle_id}
+Payload: {
+  "vehicle_id": "B1234ABC",
+  "order_id": "ORD-123456",
+  "weight_score": "sedang",
+  "front_tire": 2500,
+  "rear_tire": 3200,
+  "brake_pad": 1800,
+  "engine_oil": 2100,
+  "chain_or_cvt": 3000,
+  "engine": 2500,
+  "distance_travelled": 2.5,
+  "average_speed": 35.6,
+  "max_speed": 65.0,
+  "timestamp": "2025-11-12T11:00:00.000Z"
 }
 ```
 
-### MQTT Traffic Monitor
+### Subscribed Topics (commands to ESP32)
 
-```bash
-# Monitor all MQTT traffic on broker
-mosquitto_sub -h 103.175.219.138 -p 1883 -u backend -P backend123 -t '#' -v
+#### Start Rent
 ```
-
-## ✅ Test Results Template
-
-### Test Run Information
-- **Date**: ___________
-- **Tester**: ___________
-- **Firmware Version**: ___________
-- **Hardware Revision**: ___________
-
-### Unit Tests
-- [ ] WiFi Connection: PASS / FAIL
-- [ ] GPS Module: PASS / FAIL
-- [ ] Temperature Sensor: PASS / FAIL
-- [ ] IMU Sensor: PASS / FAIL
-
-### Integration Tests
-- [ ] Web Configuration: PASS / FAIL
-- [ ] MQTT Connection: PASS / FAIL
-- [ ] Real-time Publishing: PASS / FAIL
-
-### Functional Tests
-- [ ] Complete Rental Cycle: PASS / FAIL
-- [ ] Emergency Kill: PASS / FAIL
-- [ ] Performance Calculation: PASS / FAIL
-
-### Performance Tests
-- [ ] Memory Usage: PASS / FAIL
-- [ ] Network Reliability: PASS / FAIL
-- [ ] Long-term Stability: PASS / FAIL
-
-### Notes
-___________________________________________________________
-___________________________________________________________
-___________________________________________________________
-
-## 🐛 Common Test Failures
-
-### GPS Not Publishing Location
-**Symptoms**: Monitor shows no location updates
-
-**Diagnosis**:
-1. Check serial: GPS task running?
-2. Verify GPS has fix: `valid: true`
-3. Check MQTT connection
-
-**Fix**:
-- Wait 60s for GPS cold start
-- Move to clear sky view
-- Check UART wiring
-
-### Performance Report Missing Data
-**Symptoms**: Report shows zeros for component wear
-
-**Diagnosis**:
-1. Was tracking started with start_rent?
-2. Was there actual movement?
-3. Check temperature sensor readings
-
-**Fix**:
-- Always send start_rent before testing
-- Ensure GPS coordinates change
-- Verify sensors are working
-
-### MQTT Disconnections
-**Symptoms**: Frequent reconnection messages
-
-**Diagnosis**:
-1. Check WiFi signal strength
-2. Verify broker is stable
-3. Check keepalive settings
-
-**Fix**:
-```c
-// Increase keepalive in mqtt_vehicle_client.h
-#define MQTT_KEEPALIVE 120  // was 60
-```
-
-## 📈 Automated Testing
-
-### Unit Test Framework Setup
-
-```bash
-# Install Unity testing framework
-pio test
-```
-
-### Example Unit Test
-
-```c
-// test/test_performance.c
-#include <unity.h>
-#include "vehicle_performance.h"
-
-void test_rear_tire_calculation(void) {
-    int result = rear_tire_force(100, 0, 0, 20, 3);
-    TEST_ASSERT_EQUAL_INT(222, result);
-}
-
-void setUp(void) {
-    performance_init();
-}
-
-void tearDown(void) {
-    performance_reset();
-}
-
-int main(void) {
-    UNITY_BEGIN();
-    RUN_TEST(test_rear_tire_calculation);
-    return UNITY_END();
+Topic: control.start_rent.{vehicle_id}
+Payload: {
+  "order_id": "ORD-123456"
 }
 ```
 
-## 🎯 Test Coverage Goals
+#### End Rent
+```
+Topic: control.end_rent.{vehicle_id}
+Payload: {}
+```
 
-- **Unit Tests**: 80%+ code coverage
-- **Integration Tests**: All major flows tested
-- **Performance Tests**: 24hr stability verified
-- **Field Tests**: Real-world validation complete
+#### Kill Vehicle
+```
+Topic: control.kill_vehicle.{vehicle_id}
+Payload: {}
+```
 
-## 📞 Reporting Issues
+## 🧮 Performance Calculation Algorithm
 
-When reporting test failures:
-1. Provide full serial log output
-2. Include test scenario details
-3. Note environmental conditions
-4. Attach monitor script output if applicable
-5. Specify firmware version and hardware setup
+The system uses physics-based calculations to estimate component wear:
 
----
+### Variables
+- `s_real`: Distance traveled (meters)
+- `h`: Elevation change (meters)
+- `v_start`: Starting velocity (km/h)
+- `v_end`: Ending velocity (km/h)
+- `t`: Time interval (seconds, default: 3)
+- `T_machine`: Engine temperature (°C)
 
-**Remember**: Thorough testing prevents costly field failures! 🛡️
+### Formulas
+
+#### Rear Tire Force
+```
+F_rear = ((a + g*h/s) / a_std) * s_real
+where:
+  a = (v_end - v_start) / t
+  g = 9.8 m/s²
+  a_std = 3.0 m/s² (standard acceleration)
+```
+
+#### Brake Work
+```
+W_brake = ((|a| - g*h/s) / a_std) * s_real
+Distribution: 70% front, 30% rear
+```
+
+#### Engine Oil Wear
+```
+s_oil = s_real * exp(k * (T - T_std))
+where:
+  k = 0.0693 (ln(2)/10)
+  T_std = 100°C
+```
+
+### Conditions
+
+**Flat Road (h = 0)**
+- Accelerating: Rear tire + chain wear
+- Decelerating: Brake wear (70% front, 30% rear)
+- Constant speed: Normal tire wear
+
+**Uphill (h > 0)**
+- Accelerating/Constant: Higher rear tire + chain wear
+- Decelerating: Natural slowdown (no brake)
+
+**Downhill (h < 0)**
+- Accelerating: Normal rear tire + chain wear
+- Decelerating: Heavy brake wear + reduced tire wear
+
+### Weight Score Classification
+- **Ringan** (Light): load_ratio < 2.0
+- **Sedang** (Medium): 2.0 ≤ load_ratio < 4.0
+- **Berat** (Heavy): load_ratio ≥ 4.0
+
+## 🔧 Project Structure
+
+```
+vehicle_gps_tracker/
+├── include/
+│   ├── gps.h                    # GPS module interface
+│   ├── max6675.h               # Temperature sensor interface
+│   ├── mpu6050.h               # IMU interface
+│   ├── vehicle_performance.h   # Performance calculator
+│   ├── web_config.h            # Web configuration interface
+│   ├── wifi.h                  # WiFi manager interface
+│   └── mqtt_vehicle_client.h   # MQTT client interface
+├── src/
+│   ├── main.c                  # Main application logic
+│   ├── gps.c                   # GPS NMEA parser
+│   ├── max6675.c               # MAX6675 SPI driver
+│   ├── mpu6050.c               # MPU6050 I2C driver
+│   ├── vehicle_performance.c   # Performance tracking logic
+│   ├── web_config.c            # Web server for configuration
+│   ├── wifi_manager.c          # WiFi connection manager
+│   ├── mqtt_vehicle_client.c   # MQTT communication handler
+│   └── CMakeLists.txt
+├── platformio.ini              # PlatformIO configuration
+├── sdkconfig.esp32doit-devkit-v1  # ESP-IDF SDK configuration
+├── CMakeLists.txt              # Root CMake configuration
+└── README.md                   # This file
+```
+
+## 🐛 Troubleshooting
+
+### GPS Not Getting Fix
+- Ensure GPS module has clear view of sky
+- Check UART connections (TX/RX not swapped)
+- Verify baud rate is 9600
+- Wait 30-60 seconds for initial fix (cold start)
+
+### Cannot Connect to WiFi
+- Verify SSID and password in `main.c`
+- Check WiFi network is 2.4GHz (ESP32 doesn't support 5GHz)
+- Ensure WiFi network is in range
+
+### MQTT Connection Issues
+- Verify RabbitMQ broker is accessible
+- Check MQTT credentials in `mqtt_vehicle_client.h`
+- Ensure port 1883 is open on broker
+
+### Sensor Initialization Failed
+- Check I2C/SPI connections
+- Verify pull-up resistors on I2C lines
+- Test sensors individually using example code
+
+## 📝 Configuration Files
+
+### RabbitMQ Configuration
+See `rabbitmq.conf` for complete broker setup including:
+- MQTT plugin configuration
+- Queue policies
+- User permissions
+- Exchange bindings
+
+### ESP-IDF SDK Config
+The `sdkconfig.esp32doit-devkit-v1` contains:
+- WiFi configuration
+- MQTT settings
+- Memory optimization
+- Debug settings
+
+## 🔐 Security Notes
+
+- Change default MQTT credentials in production
+- Use TLS/SSL for MQTT in production environment
+- Implement authentication for web configuration interface
+- Store sensitive data in encrypted NVS partition
+
+## 📊 Performance Metrics
+
+- **RAM Usage**: ~100KB
+- **Flash Usage**: ~1.2MB
+- **Update Frequency**:
+  - GPS: 5 seconds
+  - Status: 5 seconds
+  - Battery: 10 seconds
+  - Temperature: 5 seconds
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Open Pull Request
+
+## 📜 License
+
+This project is licensed under the MIT License - see LICENSE file for details.
+
+## 👥 Authors
+
+- Vehicle Tracking System Team
+
+## 🙏 Acknowledgments
+
+- ESP-IDF Framework
+- RabbitMQ Team
+- PlatformIO Community

@@ -333,7 +333,7 @@ This project is licensed under the MIT License - see LICENSE file for details.
 
 ## 👥 Authors
 
-- C7 Apple Developer Academy UC
+- Vehicle Tracking System Team
 
 ## 🙏 Acknowledgments
 
