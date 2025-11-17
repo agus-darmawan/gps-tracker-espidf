@@ -53,51 +53,6 @@ static float calculate_speed(float distance, float time_diff) {
     return (distance / time_diff) * 3.6; // Convert m/s to km/h
 }
 
-/**
- * GPS reading task
- * Continuously reads and parses GPS data from UART
- */
-void gps_reading_task(void *pvParameters) {
-    uint8_t *data = (uint8_t *)malloc(GPS_UART_BUF_SIZE);
-    if (data == NULL) {
-        ESP_LOGE(TAG, "Failed to allocate GPS buffer");
-        vTaskDelete(NULL);
-        return;
-    }
-    
-    char sentence[128] = {0};
-    int sentence_idx = 0;
-    
-    ESP_LOGI(TAG, "GPS reading task started");
-    
-    while (1) {
-        int len = uart_read_bytes(GPS_UART_NUM, data, GPS_UART_BUF_SIZE, 100 / portTICK_PERIOD_MS);
-        
-        if (len > 0) {
-            for (int i = 0; i < len; i++) {
-                char c = data[i];
-                
-                if (c == '$') {
-                    sentence_idx = 0;
-                    sentence[sentence_idx++] = c;
-                } else if (c == '\r' || c == '\n') {
-                    if (sentence_idx > 0) {
-                        sentence[sentence_idx] = '\0';
-                        // GPS parsing is handled internally by gps.c
-                        sentence_idx = 0;
-                    }
-                } else if (sentence_idx < sizeof(sentence) - 1) {
-                    sentence[sentence_idx++] = c;
-                }
-            }
-        }
-        
-        vTaskDelay(pdMS_TO_TICKS(10));
-    }
-    
-    free(data);
-    vTaskDelete(NULL);
-}
 
 /**
  * Main vehicle tracking task
