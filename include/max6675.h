@@ -2,9 +2,8 @@
 #define MAX6675_H
 
 #include "driver/spi_master.h"
-#include "esp_err.h"
-
 #include "driver/gpio.h"
+#include "esp_err.h"
 
 // SPI Configuration for MAX6675
 #define MAX6675_CLK_PIN     GPIO_NUM_18

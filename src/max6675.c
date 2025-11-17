@@ -2,7 +2,6 @@
 #include "esp_log.h"
 #include "esp_err.h"
 
-
 // SPI handle
 static spi_device_handle_t spi;
 

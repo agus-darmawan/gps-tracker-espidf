@@ -1,10 +1,9 @@
-#ifndef WIFI_H
-#define WIFI_H
+#ifndef WIFI_MANAGER_H
+#define WIFI_MANAGER_H
 
 #include "esp_err.h"
 #include "esp_event.h"
 #include <stdbool.h>
-
 
 // Function prototypes
 void wifi_init_sta(const char *ssid, const char *password);
@@ -12,4 +11,4 @@ void wifi_event_handler(void *arg, esp_event_base_t event_base,
                        int32_t event_id, void *event_data);
 bool wifi_is_connected(void);
 
-#endif // WIFI_H
+#endif // WIFI_MANAGER_H

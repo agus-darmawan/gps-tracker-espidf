@@ -106,25 +106,3 @@ esp_err_t mpu6050_read_data(mpu6050_data_t *data) {
     
     return ESP_OK;
 }
-
-/**
- * Get pitch angle in degrees.
- */
-float mpu6050_get_pitch(void) {
-    mpu6050_data_t data;
-    if (mpu6050_read_data(&data) == ESP_OK) {
-        return data.pitch;
-    }
-    return 0.0;
-}
-
-/**
- * Get roll angle in degrees.
- */
-float mpu6050_get_roll(void) {
-    mpu6050_data_t data;
-    if (mpu6050_read_data(&data) == ESP_OK) {
-        return data.roll;
-    }
-    return 0.0;
-}

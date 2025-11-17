@@ -3,6 +3,7 @@
 
 #include "driver/i2c.h"
 #include "esp_err.h"
+#include "driver/gpio.h"
 
 // MPU6050 I2C Configuration
 #define MPU6050_I2C_NUM         I2C_NUM_0
@@ -35,7 +36,5 @@ typedef struct {
 // Function prototypes
 esp_err_t mpu6050_init(void);
 esp_err_t mpu6050_read_data(mpu6050_data_t *data);
-float mpu6050_get_pitch(void);
-float mpu6050_get_roll(void);
 
 #endif // MPU6050_H
