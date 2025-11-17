@@ -2,7 +2,7 @@
 #define VEHICLE_PERFORMANCE_H
 
 #include <stdint.h>
-#include <stdbool.h>
+#include <stdbool.h>#
 
 // Constants
 #define GRAVITY 9.8
@@ -13,19 +13,21 @@
 // Performance data structure
 typedef struct {
     // Cumulative distances for each component
-    int s_rear_tire;
-    int s_front_tire;
-    int s_brake_pad;
-    int s_chain_or_cvt;
-    int s_engine_oil;
-    int s_engine;  // Total distance
+    float s_rear_tire;
+    float s_front_tire;
+    float s_front_brake_pad;
+    float s_rear_brake_pad;
+    float s_chain_or_cvt;
+    float s_engine_oil;
+    float s_engine;  // Total distance
+    float s_air_filter; // Total disatnce
     
     // Weight score
-    char weight_score[16];  // "ringan", "sedang", "berat"
+    // char weight_score[16];  // "ringan", "sedang", "berat"
     
     // Previous state
-    int v_start;
-    int last_distance;
+    float v_start;
+    float last_distance;
     
     // Trip statistics
     float total_distance_km;
@@ -48,8 +50,9 @@ vehicle_performance_t performance_get_data(void);
 const char* performance_get_weight_score(void);
 
 // Helper functions
-int rear_tire_force(int s_real, int h, int v_start, int v_end, int t);
-int brake_work(int s_real, int h, int v_start, int v_end, int t);
-int count_s_oil(int s_real, float T_machine);
+float rear_tire_force(float s_real, float h, float v_start, float v_end, int time);
+float front_brake_work(float s_real, float h, float v_start, float v_end, int time, float mass, float wheelbase);
+float rear_brake_work(float s_real, float h, float v_start, float v_end, int time, float mass, float wheelbase);
+float count_s_oil(float s_real, float temp_machine);
 
 #endif // VEHICLE_PERFORMANCE_H
